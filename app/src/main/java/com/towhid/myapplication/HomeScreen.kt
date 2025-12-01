@@ -141,7 +141,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // SELECTED DEVICE CARD
+        // SELECTED DEVICE CARD for mac
         if (macAddress != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
