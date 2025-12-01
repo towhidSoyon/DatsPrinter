@@ -1,7 +1,10 @@
 package com.towhid.myapplication
 
+import android.graphics.BitmapFactory
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,14 +43,12 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
 
-    // Listen for MAC address sent from Bluetooth Screen
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val receivedMacAddress by savedStateHandle
         ?.getStateFlow<String?>("selected_mac", null)
         ?.collectAsStateWithLifecycle()
         ?: remember { mutableStateOf(null) }
 
-    // When new MAC received -> Update ViewModel
     LaunchedEffect(receivedMacAddress) {
         receivedMacAddress?.let { mac ->
             Log.d("HomeScreen", "Received MAC: $mac")
@@ -56,19 +57,35 @@ fun HomeScreen(
         }
     }
 
-    // Observe state from ViewModel
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
     val toastMessage by viewModel.toastMessage.collectAsStateWithLifecycle()
     val macAddress = viewModel.selectedMacAddress
 
-    // Show Toasts
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
         }
     }
 
-    // UI Layout
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                if (bitmap != null) {
+                    viewModel.printLargeBitmap(bitmap)
+                } else {
+                    Toast.makeText(context, "Failed to load image", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -80,9 +97,7 @@ fun HomeScreen(
         Text("POS Printer", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(32.dp))
 
-        // -------------------------
         // CONNECTION STATUS CARD
-        // -------------------------
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -99,7 +114,6 @@ fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-
                     when (connectionState) {
                         is ConnectionState.Connecting -> {
                             CircularProgressIndicator(
@@ -108,18 +122,15 @@ fun HomeScreen(
                             Spacer(Modifier.width(8.dp))
                             Text("Connecting...")
                         }
-
                         is ConnectionState.Connected -> {
                             Text("✓ Connected", style = MaterialTheme.typography.bodyLarge)
                         }
-
                         is ConnectionState.Failed -> {
                             Text(
                                 "✗ Failed: ${(connectionState as ConnectionState.Failed).error}",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
-
                         else -> {
                             Text("Disconnected", style = MaterialTheme.typography.bodyLarge)
                         }
@@ -130,9 +141,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // -------------------------
         // SELECTED DEVICE CARD
-        // -------------------------
         if (macAddress != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -164,7 +173,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // BUTTON — Navigate to Device List
+        // SELECT DEVICE BUTTON
         Button(
             onClick = { navController.navigate("bluetooth") },
             modifier = Modifier.fillMaxWidth()
@@ -172,14 +181,11 @@ fun HomeScreen(
             Text(if (macAddress == null) "Select Bluetooth Device" else "Change Device")
         }
 
-        // -------------------------
         // CONNECT / DISCONNECT BUTTON
-        // -------------------------
         if (macAddress != null) {
             Spacer(Modifier.height(8.dp))
 
             when (connectionState) {
-
                 is ConnectionState.Connecting -> {
                     Button(
                         onClick = {},
@@ -194,7 +200,6 @@ fun HomeScreen(
                         Text("Connecting…")
                     }
                 }
-
                 is ConnectionState.Connected -> {
                     OutlinedButton(
                         onClick = { viewModel.disconnectPrinter() },
@@ -203,7 +208,6 @@ fun HomeScreen(
                         Text("Disconnect")
                     }
                 }
-
                 else -> {
                     Button(
                         onClick = { viewModel.connectToPrinter(macAddress) },
@@ -215,12 +219,11 @@ fun HomeScreen(
             }
         }
 
-        // -------------------------
-        // PRINT TEST BUTTON
-        // -------------------------
+        // PRINT BUTTONS (Only when connected)
         if (connectionState is ConnectionState.Connected) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
+            // Simple Test Print
             Button(
                 onClick = { viewModel.printTestReceipt() },
                 modifier = Modifier.fillMaxWidth(),
@@ -228,7 +231,96 @@ fun HomeScreen(
                     containerColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
-                Text("Print Test")
+                Text("Print Simple Test")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Print with Logo
+            Button(
+                onClick = { viewModel.printReceiptWithLogo() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("📄 Print Receipt with Logo")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Print Image from URL
+            Button(
+                onClick = {
+                    // Example URLs - replace with your own
+                    viewModel.printImageFromUrl("https://picsum.photos/800/600")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("🌐 Print Image from URL")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Print Large Image from Gallery
+            Button(
+                onClick = {
+                    imagePickerLauncher.launch("image/*")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("🖼️ Print Large Image (5000px)")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Print Product with URL Image
+            Button(
+                onClick = {
+                    viewModel.printProductReceipt(
+                        productName = "Samsung Galaxy Phone",
+                        productPrice = 999.99,
+                        productImageUrl = "https://picsum.photos/400/400"
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("📦 Print Product (URL Image)")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Print QR Code
+            Button(
+                onClick = { viewModel.printQRCode("https://yourstore.com") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary
+                )
+            ) {
+                Text("🔲 Print QR Code")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Print Barcode
+            Button(
+                onClick = { viewModel.printBarcode("1234567890128") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("📊 Print Barcode")
             }
         }
     }

@@ -65,4 +65,5 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     ksp("com.google.dagger:hilt-compiler:2.49")
     implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }
