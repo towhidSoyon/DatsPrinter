@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.towhid.greetingsdk.GreetingSDK
 
 @Composable
 fun HomeScreen(
@@ -94,7 +96,10 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Center
     ) {
 
-        Text("POS Printer", style = MaterialTheme.typography.headlineMedium)
+        val context = LocalContext.current
+        Text("POS Printer", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.clickable{
+            GreetingSDK.showToast(context, "Soyon")
+        })
         Spacer(Modifier.height(32.dp))
 
         // CONNECTION STATUS CARD

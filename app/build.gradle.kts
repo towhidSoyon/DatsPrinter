@@ -66,4 +66,5 @@ dependencies {
     ksp("com.google.dagger:hilt-compiler:2.49")
     implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("com.github.towhidSoyon:GreetingSDK:v1.0.3")
 }
